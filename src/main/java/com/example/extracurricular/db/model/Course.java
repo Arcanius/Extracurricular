@@ -1,0 +1,105 @@
+package com.example.extracurricular.db.model;
+
+import java.time.LocalDate;
+
+public final class Course {
+	private int id;
+	
+	private String nameEn;
+	
+	private String nameUk;
+	
+	private String topicEn;
+	
+	private String topicUk;
+	
+	private LocalDate startDate;
+	
+	private int durationInDays;
+	
+	private int price;
+	
+	private User teacher;
+	
+	public Course() {
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getNameEn() {
+		return nameEn;
+	}
+
+	public void setNameEn(String nameEn) {
+		this.nameEn = nameEn;
+	}
+
+	public String getNameUk() {
+		return nameUk;
+	}
+
+	public void setNameUk(String nameUk) {
+		this.nameUk = nameUk;
+	}
+
+	public String getTopicEn() {
+		return topicEn;
+	}
+
+	public void setTopicEn(String topicEn) {
+		this.topicEn = topicEn;
+	}
+
+	public String getTopicUk() {
+		return topicUk;
+	}
+
+	public void setTopicUk(String topicUk) {
+		this.topicUk = topicUk;
+	}
+
+	public LocalDate getStartDate() {
+		return startDate;
+	}
+
+	public void setStartDate(LocalDate startDate) {
+		this.startDate = startDate;
+	}
+
+	public int getDurationInDays() {
+		return durationInDays;
+	}
+
+	public void setDurationInDays(int durationInDays) {
+		this.durationInDays = durationInDays;
+	}
+
+	public int getPrice() {
+		return price;
+	}
+
+	public void setPrice(int price) {
+		this.price = price;
+	}
+	
+	public User getTeacher() {
+		return teacher;
+	}
+	
+	public void setTeacher(User teacher) {
+		this.teacher = teacher;
+	}
+	
+	@Override
+	public String toString() {
+		return "{Id: " + id + ", nameEn: " + nameEn + ", nameUk: " + nameUk + 
+				", topicEn: " + topicEn + ", topicUk: " + topicUk + ", startDate: " + startDate + 
+				", durationInDays: " + durationInDays + ", price: " + price + ", teacher: " + teacher + "}";
+	}
+}
