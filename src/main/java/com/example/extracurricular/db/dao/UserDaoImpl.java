@@ -222,13 +222,13 @@ public final class UserDaoImpl implements UserDao {
         if (user.getNameEn().length() < Constants.NAME_MIN || user.getNameEn().length() > Constants.NAME_MAX) {
             errors.put("nameEn.error", "error.name.size");
         }
-        if (!user.getNameEn().matches("[A-Z][A-Za-z ]+")) {
+        if (!user.getNameEn().matches("[A-Z][A-Za-z ]+[A-Za-z]")) {
         	errors.put("nameEn.error", "error.name.wrong");
         }
         if (user.getNameUk().length() < Constants.NAME_MIN || user.getNameUk().length() > Constants.NAME_MAX) {
             errors.put("nameUk.error", "error.name.size");
         }
-        if (!user.getNameUk().matches("[А-ЩЬЮЯҐЄІЇ][А-ЩЬЮЯҐЄІЇа-щьюяґєії' ]+")) {
+        if (!user.getNameUk().matches("[А-ЩЬЮЯҐЄІЇ][А-ЩЬЮЯҐЄІЇа-щьюяґєії' ]+[А-ЩЬЮЯҐЄІЇа-щьюяґєії]")) {
         	errors.put("nameUk.error", "error.name.wrong");
         }
         log.info("User " + user + " validated for registration. Result: " + errors.isEmpty());

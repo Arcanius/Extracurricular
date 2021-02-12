@@ -35,17 +35,15 @@ public final class RegistrationCommand extends Command {
             Map<String, String> errors = userDao.validateForRegistration(user, req.getParameter("confirmPassword"));
             if (errors.isEmpty()) {
                 userDao.save(user);
+                resp.sendRedirect("/login");
             } else {
                 errors.forEach(req::setAttribute);
                 req.getRequestDispatcher("jsp/registration.jsp").forward(req, resp);
-                return;
             }
         } catch (SQLException e) {
             log.error(e.getMessage());
             req.setAttribute("error", "error.db");
             req.getRequestDispatcher("jsp/error.jsp").forward(req, resp);
-            return;
         }
-        resp.sendRedirect("/login");
     }
 }

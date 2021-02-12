@@ -6,8 +6,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -42,15 +45,15 @@ public final class CourseDaoImpl implements CourseDao {
         	statement.setString(1, course.getNameEn());
         	statement.setString(2, course.getNameUk());
         	resultSet = statement.executeQuery();
-        	statement.close();
         	if (!resultSet.next()) {
+        		statement.close();
         		query = "INSERT INTO topic (name_en, name_uk) VALUES (?, ?)";
         		statement = connection.prepareStatement(query);
         		statement.setString(1, course.getNameEn());
         		statement.setString(2, course.getNameUk());
         		statement.executeUpdate();
-        		statement.close();
         	}
+        	statement.close();
         	query = "INSERT INTO course (name_en, name_uk, topic_id, start_date, duration_in_days, price) VALUES (?, ?, (SELECT id FROM topic WHERE name_en = ? AND name_uk = ?), ?, ?, ?)";
         	statement = connection.prepareStatement(query);
         	statement.setString(1, course.getNameEn());
@@ -101,6 +104,57 @@ public final class CourseDaoImpl implements CourseDao {
         } finally {
         	close(connection, statement, resultSet);
         }
+    }
+    
+    @Override
+    public Map<String, String> validate(Course course) throws SQLException {
+    	Map<String, String> errors = new HashMap<>();
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "SELECT name_en, name_uk FROM course WHERE name_en = ? OR name_uk = ?";
+        	statement = connection.prepareStatement(query);
+        	statement.setString(1, course.getNameEn());
+        	statement.setString(2, course.getNameUk());
+        	resultSet = statement.executeQuery();
+        	if (resultSet.next()) {
+        		if (course.getNameEn().equals(resultSet.getString(1))) {
+        			errors.put("titleEn.error", "error.title.busy");
+        		}
+        		if (course.getNameUk().equals(resultSet.getString(2))) {
+        			errors.put("titleUk.error", "error.title.busy");
+        		}
+        	}
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+        	throw e;
+        } finally {
+        	close(connection, statement, resultSet);
+        }
+        if (!course.getNameEn().matches("[A-Z][A-Za-z ]+[A-Za-z]")) {
+        	errors.put("titleEn.error", "error.title.wrong");
+        }
+        if (!course.getNameUk().matches("[А-ЩЬЮЯҐЄІЇ][А-ЩЬЮЯҐЄІЇа-щьюяґєії' ]+[А-ЩЬЮЯҐЄІЇа-щьюяґєії]")) {
+        	errors.put("titleUk.error", "error.title.wrong");
+        }
+        if (!course.getTopicEn().matches("[A-Z][A-Za-z ]+[A-Za-z]")) {
+        	errors.put("topicEn.error", "error.topic.wrong");
+        }
+        if (!course.getTopicUk().matches("[А-ЩЬЮЯҐЄІЇ][А-ЩЬЮЯҐЄІЇа-щьюяґєії' ]+[А-ЩЬЮЯҐЄІЇа-щьюяґєії]")) {
+        	errors.put("topicUk.error", "error.topic.wrong");
+        }
+        if (course.getStartDate().equals(LocalDate.MIN)) {
+        	errors.put("start_date.error", "error.start_date.wrong");
+        }
+        if (course.getDurationInDays() <= 0) {
+        	errors.put("duration.error", "error.duration.wrong");
+        }
+        if (course.getPrice() <= 0) {
+        	errors.put("price.error", "error.price.wrong");
+        }
+        return errors;
     }
     
     private void close(Connection connection, Statement statement, ResultSet resultSet) throws SQLException {

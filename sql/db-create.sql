@@ -24,8 +24,9 @@ CREATE TABLE user (
 
 CREATE TABLE topic (
 	id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-    name_en VARCHAR(255) NOT NULL UNIQUE,
-    name_uk VARCHAR(255) NOT NULL UNIQUE
+    name_en VARCHAR(255) NOT NULL,
+    name_uk VARCHAR(255) NOT NULL,
+    UNIQUE (name_en, name_uk)
 );
 
 CREATE TABLE course (

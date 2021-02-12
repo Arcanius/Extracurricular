@@ -2,6 +2,10 @@ package com.example.extracurricular.web.command;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -11,6 +15,7 @@ import org.apache.log4j.Logger;
 
 import com.example.extracurricular.db.dao.CourseDao;
 import com.example.extracurricular.db.dao.CourseDaoImpl;
+import com.example.extracurricular.db.model.Course;
 
 public final class CoursesCommand extends Command {
 	private static final Logger log = Logger.getLogger(CoursesCommand.class);
@@ -22,6 +27,44 @@ public final class CoursesCommand extends Command {
 		try {
 			req.setAttribute("courses", courseDao.getAll());
 			req.getRequestDispatcher("jsp/courses.jsp").forward(req, resp);
+		} catch (SQLException e) {
+			log.error(e.getMessage());
+			req.setAttribute("error", "error.db");
+            req.getRequestDispatcher("jsp/error.jsp").forward(req, resp);
+		}
+	}
+	
+	@Override
+	protected void post(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		Course course = new Course();
+		course.setNameEn(req.getParameter("title_en"));
+		course.setNameUk(req.getParameter("title_uk"));
+		course.setTopicEn(req.getParameter("topic_en"));
+		course.setTopicUk(req.getParameter("topic_uk"));
+		try {
+			course.setStartDate(LocalDate.parse(req.getParameter("start_date"), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+		} catch (DateTimeParseException e) {
+			course.setStartDate(LocalDate.MIN);
+		}
+		try {
+			course.setDurationInDays(Integer.parseInt(req.getParameter("duration")));
+		} catch (NumberFormatException e) {
+			course.setDurationInDays(-1);
+		}
+		try {
+			course.setPrice(Integer.parseInt(req.getParameter("price")));
+		} catch (NumberFormatException e) {
+			course.setPrice(-1);
+		}
+		try {
+			Map<String, String> errors = courseDao.validate(course);
+			if (errors.isEmpty()) {
+				courseDao.save(course);
+				resp.sendRedirect("/courses");
+			} else {
+				errors.forEach(req::setAttribute);
+                get(req, resp);
+			}
 		} catch (SQLException e) {
 			log.error(e.getMessage());
 			req.setAttribute("error", "error.db");
