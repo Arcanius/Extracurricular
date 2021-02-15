@@ -35,7 +35,7 @@ public final class RegistrationCommand extends Command {
             Map<String, String> errors = userDao.validateForRegistration(user, req.getParameter("confirmPassword"));
             if (errors.isEmpty()) {
                 userDao.save(user);
-                resp.sendRedirect("/login");
+                resp.sendRedirect(req.getContextPath() + "/login");
             } else {
                 errors.forEach(req::setAttribute);
                 req.getRequestDispatcher("jsp/registration.jsp").forward(req, resp);

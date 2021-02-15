@@ -19,6 +19,6 @@ public final class SettingsCommand extends Command {
         Cookie lang = new Cookie("lang", req.getParameter("lang"));
         lang.setMaxAge(Constants.COOKIE_LIFETIME);
         resp.addCookie(lang);
-        resp.sendRedirect("/");
+        resp.sendRedirect(req.getContextPath() + "/");
     }
 }

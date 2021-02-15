@@ -16,10 +16,10 @@ public final class LoginFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         if (request.getSession().getAttribute("user") == null) {
             HttpServletResponse response = (HttpServletResponse) servletResponse;
-            response.sendRedirect("/login");
+            response.sendRedirect(request.getContextPath() + "/login");
         } else if (((User) request.getSession().getAttribute("user")).isBanned()) {
         	HttpServletResponse response = (HttpServletResponse) servletResponse;
-            response.sendRedirect("/");
+            response.sendRedirect(request.getContextPath() + "/");
         } else {
             filterChain.doFilter(servletRequest, servletResponse);
         }

@@ -31,11 +31,11 @@ public final class UsersCommand extends Command {
             			req.setAttribute("user", userDao.getById(id));
             			req.getRequestDispatcher("jsp/user.jsp").forward(req, resp);
             		} else {
-            			resp.sendRedirect("/users");
+            			resp.sendRedirect(req.getContextPath() + "/users");
             		}
             	} catch (NumberFormatException e) {
             		log.error(e.getMessage());
-            		resp.sendRedirect("/users");
+            		resp.sendRedirect(req.getContextPath() + "/users");
             	}
             }
         } catch (SQLException e) {
@@ -49,7 +49,7 @@ public final class UsersCommand extends Command {
     protected void post(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     	try {
             if (req.getParameter("id") == null) {
-            	resp.sendRedirect("/users");
+            	resp.sendRedirect(req.getContextPath() + "/users");
             } else {
             	try {
             		int id = Integer.parseInt(req.getParameter("id"));
@@ -63,11 +63,10 @@ public final class UsersCommand extends Command {
             			}
             			userDao.update(user);
             		}
-            		resp.sendRedirect("/users");
             	} catch (IllegalArgumentException e) {
             		log.error(e.getMessage());
-            		resp.sendRedirect("/users");
             	}
+            	resp.sendRedirect(req.getContextPath() + "/users");
             }
         } catch (SQLException e) {
             log.error(e.getMessage());

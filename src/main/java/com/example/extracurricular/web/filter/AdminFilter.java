@@ -8,7 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@WebFilter("/users/*")
+@WebFilter({"/users/*", "/createcourse/*", "/editcourse/*"})
 public final class AdminFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -19,11 +19,11 @@ public final class AdminFilter implements Filter {
                 chain.doFilter(request, response);
             } else {
                 HttpServletResponse resp = (HttpServletResponse) response;
-                resp.sendRedirect("/");
+                resp.sendRedirect(req.getContextPath() + "/");
             }
         } else {
             HttpServletResponse resp = (HttpServletResponse) response;
-            resp.sendRedirect("/login");
+            resp.sendRedirect(req.getContextPath() + "/login");
         }
     }
 }

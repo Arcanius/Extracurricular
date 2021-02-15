@@ -22,9 +22,9 @@ public final class LoginCommand extends Command {
         if (req.getParameter("logout") != null && req.getSession().getAttribute("user") != null) {
             log.info("User " + req.getSession().getAttribute("user") + " logged out");
             req.getSession().removeAttribute("user");
-            resp.sendRedirect("/login");
+            resp.sendRedirect(req.getContextPath() + "/login");
         } else if (req.getSession().getAttribute("user") != null) {
-            resp.sendRedirect("/");
+            resp.sendRedirect(req.getContextPath() + "/");
         } else {
             req.getRequestDispatcher("jsp/login.jsp").forward(req, resp);
         }
@@ -40,7 +40,7 @@ public final class LoginCommand extends Command {
             if (errors.isEmpty()) {
                 req.getSession().setAttribute("user", user);
                 log.info("User " + user + " logged in");
-                resp.sendRedirect("/");
+                resp.sendRedirect(req.getContextPath() + "/");
             } else {
                 errors.forEach(req::setAttribute);
                 req.getRequestDispatcher("jsp/login.jsp").forward(req, resp);

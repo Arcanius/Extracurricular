@@ -32,7 +32,7 @@
 
             <button type="submit"><fmt:message key="login"/></button>
             <br>
-            <a href="/registration"><fmt:message key="registration"/></a>
+            <a href="${pageContext.request.contextPath}/registration"><fmt:message key="registration"/></a>
         </form>
     </body>
 </html>
