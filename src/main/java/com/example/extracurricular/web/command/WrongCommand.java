@@ -8,7 +8,6 @@ import java.io.IOException;
 public final class WrongCommand extends Command {
     @Override
     public void execute(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    	req.setAttribute("error", "error.not_found");
-        req.getRequestDispatcher("jsp/error.jsp").forward(req, resp);
+    	resp.sendError(404);
     }
 }

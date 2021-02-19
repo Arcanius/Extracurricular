@@ -19,6 +19,10 @@ public interface UserDao {
     List<User> getAll() throws SQLException;
     
     User getById(int id) throws SQLException;
+    
+    User getByLogin(String login) throws SQLException;
+    
+    List<User> getAllByRole(User.Role role) throws SQLException;
 
     Map<String, String> validateForLogin(User user) throws SQLException;
 

@@ -44,8 +44,8 @@ public final class CourseDaoImpl implements CourseDao {
         	connection = dataSource.getConnection();
         	String query = "SELECT * FROM topic WHERE name_en = ? OR name_uk = ?";
         	statement = connection.prepareStatement(query);
-        	statement.setString(1, course.getNameEn());
-        	statement.setString(2, course.getNameUk());
+        	statement.setString(1, course.getTopicEn());
+        	statement.setString(2, course.getTopicUk());
         	resultSet = statement.executeQuery();
         	if (!resultSet.next()) {
         		statement.close();
@@ -66,6 +66,51 @@ public final class CourseDaoImpl implements CourseDao {
         	statement.setInt(6, course.getDurationInDays());
         	statement.executeUpdate();
         	log.info("Course " + course + " saved in database");
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+            throw e;
+        } finally {
+			close(connection, statement, resultSet);
+		}
+    }
+    
+    @Override
+    public void update(Course course) throws SQLException {
+    	Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "SELECT * FROM topic WHERE name_en = ? OR name_uk = ?";
+        	statement = connection.prepareStatement(query);
+        	statement.setString(1, course.getTopicEn());
+        	statement.setString(2, course.getTopicUk());
+        	resultSet = statement.executeQuery();
+        	if (!resultSet.next()) {
+        		statement.close();
+        		query = "INSERT INTO topic (name_en, name_uk) VALUES (?, ?)";
+        		statement = connection.prepareStatement(query);
+        		statement.setString(1, course.getTopicEn());
+        		statement.setString(2, course.getTopicUk());
+        		statement.executeUpdate();
+        	}
+        	statement.close();
+        	query = "UPDATE course SET name_en = ?, name_uk = ?, topic_id = (SELECT id FROM topic WHERE name_en = ? OR name_uk = ?), start_date = ?, duration_in_days = ?, teacher_id = (SELECT user.id FROM user INNER JOIN role ON role_id = role.id WHERE user.id = ? AND role.name = 'TEACHER') WHERE id = ?";
+        	statement = connection.prepareStatement(query);
+        	statement.setString(1, course.getNameEn());
+        	statement.setString(2, course.getNameUk());
+        	statement.setString(3, course.getTopicEn());
+        	statement.setString(4, course.getTopicUk());
+        	statement.setObject(5, course.getStartDate());
+        	statement.setInt(6, course.getDurationInDays());
+        	if (course.getTeacher() != null) {
+        		statement.setInt(7, course.getTeacher().getId());
+        	} else {
+        		statement.setInt(7, -1);
+        	}
+        	statement.setInt(8, course.getId());
+        	statement.executeUpdate();
+        	log.info("Course " + course + " updated in database");
         } catch (SQLException e) {
         	log.error(e.getMessage());
             throw e;
@@ -140,31 +185,33 @@ public final class CourseDaoImpl implements CourseDao {
     }
     
     @Override
-    public Map<String, String> validate(Course course) throws SQLException {
+    public Map<String, String> validate(Course course, boolean edit) throws SQLException {
     	Map<String, String> errors = new HashMap<>();
-        Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet resultSet = null;
-        try {
-        	connection = dataSource.getConnection();
-        	String query = "SELECT name_en, name_uk FROM course WHERE name_en = ? OR name_uk = ?";
-        	statement = connection.prepareStatement(query);
-        	statement.setString(1, course.getNameEn());
-        	statement.setString(2, course.getNameUk());
-        	resultSet = statement.executeQuery();
-        	if (resultSet.next()) {
-        		if (course.getNameEn().equals(resultSet.getString(1))) {
-        			errors.put("titleEn.error", "error.title.busy");
-        		}
-        		if (course.getNameUk().equals(resultSet.getString(2))) {
-        			errors.put("titleUk.error", "error.title.busy");
-        		}
-        	}
-        } catch (SQLException e) {
-        	log.error(e.getMessage());
-        	throw e;
-        } finally {
-        	close(connection, statement, resultSet);
+        if (!edit) {
+        	Connection connection = null;
+            PreparedStatement statement = null;
+            ResultSet resultSet = null;
+            try {
+            	connection = dataSource.getConnection();
+            	String query = "SELECT name_en, name_uk FROM course WHERE name_en = ? OR name_uk = ?";
+            	statement = connection.prepareStatement(query);
+            	statement.setString(1, course.getNameEn());
+            	statement.setString(2, course.getNameUk());
+            	resultSet = statement.executeQuery();
+            	if (resultSet.next()) {
+            		if (course.getNameEn().equals(resultSet.getString(1))) {
+            			errors.put("titleEn.error", "error.title.busy");
+            		}
+            		if (course.getNameUk().equals(resultSet.getString(2))) {
+            			errors.put("titleUk.error", "error.title.busy");
+            		}
+            	}
+            } catch (SQLException e) {
+            	log.error(e.getMessage());
+            	throw e;
+            } finally {
+            	close(connection, statement, resultSet);
+            }
         }
         if (!course.getNameEn().matches("[A-Z][A-Za-z ]+[A-Za-z]")) {
         	errors.put("titleEn.error", "error.title.wrong");
@@ -228,6 +275,30 @@ public final class CourseDaoImpl implements CourseDao {
         		courses.add(course);
         	}
         	return courses;
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+        	throw e;
+        } finally {
+        	close(connection, statement, resultSet);
+        }
+    }
+    
+    @Override
+    public boolean isStudentEnrolled(int studentId, int courseId) throws SQLException {
+    	Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "SELECT * FROM student_course WHERE student_id = ? AND course_id = ?";
+        	statement = connection.prepareStatement(query);
+        	statement.setInt(1, studentId);
+        	statement.setInt(2, courseId);
+        	resultSet = statement.executeQuery();
+        	if (resultSet.next()) {
+        		return true;
+        	}
+        	return false;
         } catch (SQLException e) {
         	log.error(e.getMessage());
         	throw e;

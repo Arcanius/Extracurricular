@@ -37,7 +37,7 @@ public final class CoursesCommand extends Command {
 			try {
 				int id = Integer.parseInt(req.getParameter("id"));
 				Course course = courseDao.getById(id);
-				if (course != null) {
+				if (course != null && !courseDao.isStudentEnrolled(((User) req.getSession().getAttribute("user")).getId(), id)) {
 					courseDao.enrollUser(course, (User) req.getSession().getAttribute("user"));
 				}
 				resp.sendRedirect(req.getContextPath() + "/courses");

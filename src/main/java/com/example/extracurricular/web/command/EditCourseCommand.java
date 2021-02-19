@@ -15,21 +15,53 @@ import org.apache.log4j.Logger;
 
 import com.example.extracurricular.db.dao.CourseDao;
 import com.example.extracurricular.db.dao.CourseDaoImpl;
+import com.example.extracurricular.db.dao.UserDao;
+import com.example.extracurricular.db.dao.UserDaoImpl;
 import com.example.extracurricular.db.model.Course;
+import com.example.extracurricular.db.model.User;
 
-public final class CreateCourseCommand extends Command {
-	private static final Logger log = Logger.getLogger(CreateCourseCommand.class);
+public final class EditCourseCommand extends Command {
+	private static final Logger log = Logger.getLogger(EditCourseCommand.class);
 	
 	private final CourseDao courseDao = CourseDaoImpl.getInstance();
+	private final UserDao userDao = UserDaoImpl.getInstance();
 	
 	@Override
 	protected void get(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		req.getRequestDispatcher("jsp/createcourse.jsp").forward(req, resp);
+		try {
+			if (req.getParameter("id") == null) {
+				resp.sendRedirect(req.getContextPath() + "/courses");
+			} else {
+				try {
+					int id = Integer.parseInt(req.getParameter("id"));
+					Course course = courseDao.getById(id);
+					if (course == null) {
+						resp.sendRedirect(req.getContextPath() + "/courses");
+					} else {
+						req.setAttribute("course", course);
+						req.setAttribute("teachers", userDao.getAllByRole(User.Role.TEACHER));
+						req.getRequestDispatcher("jsp/editcourse.jsp").forward(req, resp);
+					}
+				} catch (NumberFormatException e) {
+					log.error(e.getMessage());
+					resp.sendRedirect(req.getContextPath() + "/courses");
+				}
+			}
+		} catch (SQLException e) {
+            log.error(e.getMessage());
+            req.setAttribute("error", "error.db");
+            req.getRequestDispatcher("jsp/error.jsp").forward(req, resp);
+        }
 	}
 	
 	@Override
 	protected void post(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		Course course = new Course();
+		try {
+			course.setId(Integer.parseInt(req.getParameter("id")));
+		} catch (NumberFormatException e) {
+			course.setId(-1);
+		}
 		course.setNameEn(req.getParameter("title_en"));
 		course.setNameUk(req.getParameter("title_uk"));
 		course.setTopicEn(req.getParameter("topic_en"));
@@ -45,9 +77,10 @@ public final class CreateCourseCommand extends Command {
 			course.setDurationInDays(-1);
 		}
 		try {
-			Map<String, String> errors = courseDao.validate(course, false);
+			course.setTeacher(userDao.getByLogin(req.getParameter("teacher")));
+			Map<String, String> errors = courseDao.validate(course, true);
 			if (errors.isEmpty()) {
-				courseDao.save(course);
+				courseDao.update(course);
 				resp.sendRedirect(req.getContextPath() + "/courses");
 			} else {
 				errors.forEach(req::setAttribute);

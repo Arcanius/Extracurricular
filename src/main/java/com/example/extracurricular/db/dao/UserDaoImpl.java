@@ -1,6 +1,7 @@
 package com.example.extracurricular.db.dao;
 
 import com.example.extracurricular.db.model.User;
+import com.example.extracurricular.db.model.User.Role;
 import com.example.extracurricular.util.Constants;
 import com.example.extracurricular.util.DBCPDataSource;
 import com.example.extracurricular.util.Security;
@@ -147,6 +148,38 @@ public final class UserDaoImpl implements UserDao {
         	close(connection, statement, resultSet);
         }
     }
+    
+    @Override
+    public User getByLogin(String login) throws SQLException {
+    	Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "SELECT id, password, name_en, name_uk, (SELECT name FROM role WHERE id = role_id), banned FROM user WHERE login = ?";
+        	statement = connection.prepareStatement(query);
+        	statement.setString(1, login);
+        	resultSet = statement.executeQuery();
+        	User user = null;
+        	if (resultSet.next()) {
+        		user = new User();
+        		user.setId(resultSet.getInt(1));
+        		user.setLogin(login);
+                user.setPassword(resultSet.getString(2));
+                user.setNameEn(resultSet.getString(3));
+                user.setNameUk(resultSet.getString(4));
+                user.setRole(User.Role.valueOf(resultSet.getString(5)));
+                user.setBanned(resultSet.getBoolean(6));
+        	}
+        	log.info("User " + user + " provided by database");
+        	return user;
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+        	throw e;
+        } finally {
+        	close(connection, statement, resultSet);
+        }
+    }
 
     @Override
     public Map<String, String> validateForLogin(User user) throws SQLException {
@@ -233,6 +266,39 @@ public final class UserDaoImpl implements UserDao {
         }
         log.info("User " + user + " validated for registration. Result: " + errors.isEmpty());
         return errors;
+    }
+    
+    @Override
+    public List<User> getAllByRole(Role role) throws SQLException {
+    	List<User> users = new ArrayList<>();
+    	Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "SELECT id, login, password, name_en, name_uk, banned FROM user WHERE role_id = (SELECT id FROM role WHERE name = ?)";
+        	statement = connection.prepareStatement(query);
+        	statement.setString(1, role.name());
+        	resultSet = statement.executeQuery();
+        	while (resultSet.next()) {
+        		User user = new User();
+        		user.setId(resultSet.getInt(1));
+        		user.setLogin(resultSet.getString(2));
+                user.setPassword(resultSet.getString(3));
+                user.setNameEn(resultSet.getString(4));
+                user.setNameUk(resultSet.getString(5));
+                user.setRole(role);
+                user.setBanned(resultSet.getBoolean(6));
+                users.add(user);
+        	}
+        	log.info("List of users provided by database");
+        	return users;
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+        	throw e;
+        } finally {
+        	close(connection, statement, resultSet);
+        }
     }
 
     private void close(Connection connection, Statement statement, ResultSet resultSet) throws SQLException {

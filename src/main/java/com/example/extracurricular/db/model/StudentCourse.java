@@ -1,6 +1,8 @@
 package com.example.extracurricular.db.model;
 
 public final class StudentCourse {
+	private User student;
+	
 	private Course course;
 	
 	private int progress;
@@ -8,6 +10,14 @@ public final class StudentCourse {
 	private int mark;
 	
 	public StudentCourse() {
+	}
+	
+	public User getStudent() {
+		return student;
+	}
+	
+	public void setStudent(User student) {
+		this.student = student;
 	}
 
 	public Course getCourse() {
