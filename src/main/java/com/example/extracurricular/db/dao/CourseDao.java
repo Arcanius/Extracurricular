@@ -24,4 +24,8 @@ public interface CourseDao {
 	List<StudentCourse> getStudentCourses(int studentId) throws SQLException;
 	
 	boolean isStudentEnrolled(int studentId, int courseId) throws SQLException;
+	
+	int countCourses() throws SQLException;
+	
+	List<Course> getForPage(int page, String orderBy, String lang) throws SQLException;
 }

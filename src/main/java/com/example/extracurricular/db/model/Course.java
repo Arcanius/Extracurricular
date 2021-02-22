@@ -19,6 +19,8 @@ public final class Course {
 	
 	private User teacher;
 	
+	private int students;
+	
 	public Course() {
 	}
 
@@ -86,10 +88,19 @@ public final class Course {
 		this.teacher = teacher;
 	}
 	
+	public int getStudents() {
+		return students;
+	}
+
+	public void setStudents(int students) {
+		this.students = students;
+	}
+
 	@Override
 	public String toString() {
 		return "{Id: " + id + ", nameEn: " + nameEn + ", nameUk: " + nameUk + 
 				", topicEn: " + topicEn + ", topicUk: " + topicUk + ", startDate: " + startDate + 
-				", durationInDays: " + durationInDays + ", teacher: " + teacher + "}";
+				", durationInDays: " + durationInDays + ", teacher: " + teacher + ", number of students: " + 
+				students + "}";
 	}
 }

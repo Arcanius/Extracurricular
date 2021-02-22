@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 import com.example.extracurricular.db.model.Course;
 import com.example.extracurricular.db.model.StudentCourse;
 import com.example.extracurricular.db.model.User;
+import com.example.extracurricular.util.Constants;
 import com.example.extracurricular.util.DBCPDataSource;
 
 public final class CourseDaoImpl implements CourseDao {
@@ -127,7 +128,7 @@ public final class CourseDaoImpl implements CourseDao {
         List<Course> courses = new ArrayList<>();
         try {
         	connection = dataSource.getConnection();
-        	String query = "SELECT course.id, course.name_en, course.name_uk, topic.name_en, topic.name_uk, start_date, duration_in_days, teacher_id FROM course INNER JOIN topic ON topic_id = topic.id";
+        	String query = "SELECT course.id, course.name_en, course.name_uk, topic.name_en, topic.name_uk, start_date, duration_in_days, teacher_id, (SELECT COUNT(course_id) FROM student_course WHERE course.id = course_id) FROM course INNER JOIN topic ON topic_id = topic.id";
         	statement = connection.createStatement();
         	resultSet = statement.executeQuery(query);
         	while (resultSet.next()) {
@@ -140,6 +141,7 @@ public final class CourseDaoImpl implements CourseDao {
         		course.setStartDate(((Date) resultSet.getObject(6)).toLocalDate());
         		course.setDurationInDays(resultSet.getInt(7));
         		course.setTeacher(UserDaoImpl.getInstance().getById(resultSet.getInt(8)));
+        		course.setStudents(resultSet.getInt(9));
         		courses.add(course);
         	}
         	return courses;
@@ -299,6 +301,73 @@ public final class CourseDaoImpl implements CourseDao {
         		return true;
         	}
         	return false;
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+        	throw e;
+        } finally {
+        	close(connection, statement, resultSet);
+        }
+    }
+    
+    @Override
+    public int countCourses() throws SQLException {
+    	Connection connection = null;
+        Statement statement = null;
+        ResultSet resultSet = null;
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "SELECT COUNT(id) FROM course";
+        	statement = connection.createStatement();
+        	resultSet = statement.executeQuery(query);
+        	resultSet.next();
+        	return resultSet.getInt(1);
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+        	throw e;
+        } finally {
+        	close(connection, statement, resultSet);
+        }
+    }
+    
+    @Override
+    public List<Course> getForPage(int page, String orderBy, String lang) throws SQLException {
+    	List<Course> courses = new ArrayList<>();
+    	Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "SELECT course.id, course.name_en, course.name_uk, topic.name_en, topic.name_uk, start_date, duration_in_days, teacher_id, (SELECT COUNT(course_id) FROM student_course WHERE course.id = course_id) FROM course INNER JOIN topic ON topic_id = topic.id";
+        	if ("title".equals(orderBy)) {
+        		if ("uk".equals(lang)) {
+        			query += " ORDER BY course.name_uk";
+        		} else {
+        			query += " ORDER BY course.name_en";
+        		}
+        	}
+        	switch (orderBy) {
+        		case "duration" -> query += " ORDER BY duration_in_days";
+        		case "students" -> query += " ORDER BY (SELECT COUNT(course_id) FROM student_course WHERE course.id = course_id)";
+        	}
+        	query += " LIMIT ?, ?";
+        	statement = connection.prepareStatement(query);
+        	statement.setInt(1, (page - 1) * Constants.RECORDS_PER_PAGE);
+        	statement.setInt(2, Constants.RECORDS_PER_PAGE);
+        	resultSet = statement.executeQuery();
+        	while (resultSet.next()) {
+        		Course course = new Course();
+        		course.setId(resultSet.getInt(1));
+        		course.setNameEn(resultSet.getString(2));
+        		course.setNameUk(resultSet.getString(3));
+        		course.setTopicEn(resultSet.getString(4));
+        		course.setTopicUk(resultSet.getString(5));
+        		course.setStartDate(((Date) resultSet.getObject(6)).toLocalDate());
+        		course.setDurationInDays(resultSet.getInt(7));
+        		course.setTeacher(UserDaoImpl.getInstance().getById(resultSet.getInt(8)));
+        		course.setStudents(resultSet.getInt(9));
+        		courses.add(course);
+        	}
+        	return courses;
         } catch (SQLException e) {
         	log.error(e.getMessage());
         	throw e;

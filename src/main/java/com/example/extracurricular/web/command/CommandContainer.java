@@ -16,6 +16,7 @@ public final class CommandContainer {
         commands.put("courses", new CoursesCommand());
         commands.put("createcourse", new CreateCourseCommand());
         commands.put("editcourse", new EditCourseCommand());
+        commands.put("filter", new FilterCommand());
     }
 
     public static Command getCommand(String key) {

@@ -18,6 +18,16 @@
     	<c:if test="${sessionScope['user'].role == 'ADMIN'}">
     		<a href="/createcourse"><fmt:message key="create_course"/></a>
     	</c:if>
+    	<p><fmt:message key="courses_available"/>: ${requestScope['count']}</p>
+    	<form method="post" action="${pageContext.request.contextPath}/filter">
+    		<label for="orderBy"><fmt:message key="order_by"/>:</label>
+    		<select name="orderBy" id="orderBy" onchange="this.form.submit()">
+    			<option value="none"><fmt:message key="no"/></option>
+    			<option value="title"><fmt:message key="title"/></option>
+    			<option value="duration"><fmt:message key="duration"/></option>
+    			<option value="students"><fmt:message key="students"/></option>
+    		</select>
+    	</form>
     	<table border="1">
     		<tr>
     			<th>ID</th>
@@ -25,6 +35,7 @@
                 <th><fmt:message key="topic"/></th>
                 <th><fmt:message key="start_date"/></th>
                 <th><fmt:message key="duration"/></th>
+                <th><fmt:message key="students"/></th>
                 <th><fmt:message key="teacher"/></th>
     		</tr>
     		<c:forEach items="${requestScope['courses']}" var="course">
@@ -40,6 +51,7 @@
     				</c:if>
     				<td>${course.startDate}</td>
     				<td>${course.durationInDays}</td>
+    				<td>${course.students}</td>
     				<td>${course.teacher}</td>
     				<c:if test="${sessionScope['user'].role == 'STUDENT'}">
     					<td>
@@ -51,11 +63,18 @@
     				</c:if>
     				<c:if test="${sessionScope['user'].role == 'ADMIN'}">
     					<td>
-    						<a href="editcourse?id=${course.id}"><fmt:message key="edit"/></a>
+    						<a href="${pageContext.request.contextPath}/editcourse?id=${course.id}"><fmt:message key="edit"/></a>
     					</td>
     				</c:if>
     			</tr>
     		</c:forEach>
     	</table>
+    	<ul>
+    		<c:forEach begin="1" end="${requestScope['pages']}" var="i">
+    			<li>
+    				<a href="${pageContext.request.contextPath}/courses?page=${i}">${i}</a>
+    			</li>
+    		</c:forEach>
+    	</ul>
     </body>
 </html>
