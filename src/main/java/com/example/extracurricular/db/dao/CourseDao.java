@@ -15,6 +15,8 @@ public interface CourseDao {
 	
 	List<Course> getAll() throws SQLException;
 	
+	List<String> getAllTopics(String lang) throws SQLException;
+	
 	Course getById(int id) throws SQLException;
 	
 	Map<String, String> validate(Course course, boolean edit) throws SQLException;
@@ -25,7 +27,9 @@ public interface CourseDao {
 	
 	boolean isStudentEnrolled(int studentId, int courseId) throws SQLException;
 	
-	int countCourses() throws SQLException;
+	int countCourses(User user) throws SQLException;
 	
-	List<Course> getForPage(int page, String orderBy, String lang) throws SQLException;
+	boolean isCourseStarted(int id) throws SQLException;
+	
+	List<Course> getForPage(User user, int page, String orderBy, String order, String topic, String teacherLogin, String lang) throws SQLException;
 }

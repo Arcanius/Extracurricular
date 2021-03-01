@@ -154,6 +154,34 @@ public final class CourseDaoImpl implements CourseDao {
     }
     
     @Override
+    public List<String> getAllTopics(String lang) throws SQLException {
+    	Connection connection = null;
+        Statement statement = null;
+        ResultSet resultSet = null;
+        List<String> topics = new ArrayList<>();
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "";
+        	if ("uk".equals(lang)) {
+        		query = "SELECT name_uk FROM topic";
+        	} else {
+        		query = "SELECT name_en FROM topic";
+        	}
+        	statement = connection.createStatement();
+        	resultSet = statement.executeQuery(query);
+        	while (resultSet.next()) {
+        		topics.add(resultSet.getString(1));
+        	}
+        	return topics;
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+        	throw e;
+        } finally {
+        	close(connection, statement, resultSet);
+        }
+    }
+    
+    @Override
     public Course getById(int id) throws SQLException {
     	Connection connection = null;
         PreparedStatement statement = null;
@@ -310,7 +338,15 @@ public final class CourseDaoImpl implements CourseDao {
     }
     
     @Override
-    public int countCourses() throws SQLException {
+    public int countCourses(User user) throws SQLException {
+    	return switch (user.getRole()) {
+    		case ADMIN -> countCoursesForAdmin();
+    		case STUDENT -> countCoursesForStudent(user.getId());
+    		default -> 0;
+    	};
+    }
+    
+    private int countCoursesForAdmin() throws SQLException {
     	Connection connection = null;
         Statement statement = null;
         ResultSet resultSet = null;
@@ -329,8 +365,56 @@ public final class CourseDaoImpl implements CourseDao {
         }
     }
     
+    private int countCoursesForStudent(int id) throws SQLException {
+    	Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "SELECT COUNT(id) FROM course WHERE id NOT IN (SELECT course_id FROM student_course WHERE student_id = ?) AND CURRENT_DATE() < start_date";
+        	statement = connection.prepareStatement(query);
+        	statement.setInt(1, id);
+        	resultSet = statement.executeQuery();
+        	resultSet.next();
+        	return resultSet.getInt(1);
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+        	throw e;
+        } finally {
+        	close(connection, statement, resultSet);
+        }
+    }
+    
     @Override
-    public List<Course> getForPage(int page, String orderBy, String lang) throws SQLException {
+    public boolean isCourseStarted(int id) throws SQLException {
+    	Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "SELECT id FROM course WHERE id = ? AND start_date < CURRENT_DATE()";
+        	statement = connection.prepareStatement(query);
+        	statement.setInt(1, id);
+        	resultSet = statement.executeQuery();
+        	return resultSet.next();
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+        	throw e;
+        } finally {
+        	close(connection, statement, resultSet);
+        }
+    }
+    
+    @Override
+    public List<Course> getForPage(User user, int page, String orderBy, String order, String topic, String teacherLogin, String lang) throws SQLException {
+    	return switch (user.getRole()) {
+    		case ADMIN -> getForAdmin(page, orderBy, order, topic, teacherLogin, lang);
+    		case STUDENT -> getForStudent(user, page, orderBy, order, topic, teacherLogin, lang);
+    		default -> new ArrayList<Course>();
+    	};
+    }
+    
+    private List<Course> getForAdmin(int page, String orderBy, String order, String topic, String teacherLogin, String lang) throws SQLException {
     	List<Course> courses = new ArrayList<>();
     	Connection connection = null;
         PreparedStatement statement = null;
@@ -338,6 +422,18 @@ public final class CourseDaoImpl implements CourseDao {
         try {
         	connection = dataSource.getConnection();
         	String query = "SELECT course.id, course.name_en, course.name_uk, topic.name_en, topic.name_uk, start_date, duration_in_days, teacher_id, (SELECT COUNT(course_id) FROM student_course WHERE course.id = course_id) FROM course INNER JOIN topic ON topic_id = topic.id";
+        	if (!"all".equals(topic) || !"all".equals(teacherLogin)) {
+        		query += " WHERE";
+        		if (!"all".equals(topic)) {
+        			query += " (topic.name_en = ? OR topic.name_uk = ?)";
+        			if (!"all".equals(teacherLogin)) {
+        				query += " AND";
+        			}
+        		}
+        		if (!"all".equals(teacherLogin)) {
+        			query += " teacher_id IN (SELECT id FROM user WHERE login = ?)";
+        		}
+        	}
         	if ("title".equals(orderBy)) {
         		if ("uk".equals(lang)) {
         			query += " ORDER BY course.name_uk";
@@ -349,10 +445,94 @@ public final class CourseDaoImpl implements CourseDao {
         		case "duration" -> query += " ORDER BY duration_in_days";
         		case "students" -> query += " ORDER BY (SELECT COUNT(course_id) FROM student_course WHERE course.id = course_id)";
         	}
+        	if ("desc".equals(order) && !"none".equals(orderBy)) {
+        		query += " DESC";
+        	}
         	query += " LIMIT ?, ?";
         	statement = connection.prepareStatement(query);
-        	statement.setInt(1, (page - 1) * Constants.RECORDS_PER_PAGE);
-        	statement.setInt(2, Constants.RECORDS_PER_PAGE);
+        	int counter = 1;
+        	if (!"all".equals(topic)) {
+        		statement.setString(counter, topic);
+        		++counter;
+        		statement.setString(counter, topic);
+        		++counter;
+        	}
+        	if (!"all".equals(teacherLogin)) {
+        		statement.setString(counter, teacherLogin);
+        		++counter;
+        	}
+        	statement.setInt(counter, (page - 1) * Constants.RECORDS_PER_PAGE);
+        	++counter;
+        	statement.setInt(counter, Constants.RECORDS_PER_PAGE);
+        	resultSet = statement.executeQuery();
+        	while (resultSet.next()) {
+        		Course course = new Course();
+        		course.setId(resultSet.getInt(1));
+        		course.setNameEn(resultSet.getString(2));
+        		course.setNameUk(resultSet.getString(3));
+        		course.setTopicEn(resultSet.getString(4));
+        		course.setTopicUk(resultSet.getString(5));
+        		course.setStartDate(((Date) resultSet.getObject(6)).toLocalDate());
+        		course.setDurationInDays(resultSet.getInt(7));
+        		course.setTeacher(UserDaoImpl.getInstance().getById(resultSet.getInt(8)));
+        		course.setStudents(resultSet.getInt(9));
+        		courses.add(course);
+        	}
+        	return courses;
+        } catch (SQLException e) {
+        	log.error(e.getMessage());
+        	throw e;
+        } finally {
+        	close(connection, statement, resultSet);
+        }
+    }
+    
+    private List<Course> getForStudent(User student, int page, String orderBy, String order, String topic, String teacherLogin, String lang) throws SQLException {
+    	List<Course> courses = new ArrayList<>();
+    	Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+        	connection = dataSource.getConnection();
+        	String query = "SELECT course.id, course.name_en, course.name_uk, topic.name_en, topic.name_uk, start_date, duration_in_days, teacher_id, (SELECT COUNT(course_id) FROM student_course WHERE course.id = course_id) FROM course INNER JOIN topic ON topic_id = topic.id WHERE course.id NOT IN (SELECT course_id FROM student_course WHERE student_id = ?) AND CURRENT_DATE() < start_date";
+        	if (!"all".equals(topic)) {
+    			query += " AND (topic.name_en = ? OR topic.name_uk = ?)";
+    		}
+    		if (!"all".equals(teacherLogin)) {
+    			query += " AND teacher_id IN (SELECT id FROM user WHERE login = ?)";
+    		}
+        	if ("title".equals(orderBy)) {
+        		if ("uk".equals(lang)) {
+        			query += " ORDER BY course.name_uk";
+        		} else {
+        			query += " ORDER BY course.name_en";
+        		}
+        	}
+        	switch (orderBy) {
+        		case "duration" -> query += " ORDER BY duration_in_days";
+        		case "students" -> query += " ORDER BY (SELECT COUNT(course_id) FROM student_course WHERE course.id = course_id)";
+        	}
+        	if ("desc".equals(order) && !"none".equals(orderBy)) {
+        		query += " DESC";
+        	}
+        	query += " LIMIT ?, ?";
+        	statement = connection.prepareStatement(query);
+        	int counter = 1;
+        	statement.setInt(counter, student.getId());
+        	++counter;
+        	if (!"all".equals(topic)) {
+        		statement.setString(counter, topic);
+        		++counter;
+        		statement.setString(counter, topic);
+        		++counter;
+        	}
+        	if (!"all".equals(teacherLogin)) {
+        		statement.setString(counter, teacherLogin);
+        		++counter;
+        	}
+        	statement.setInt(counter, (page - 1) * Constants.RECORDS_PER_PAGE);
+        	++counter;
+        	statement.setInt(counter, Constants.RECORDS_PER_PAGE);
         	resultSet = statement.executeQuery();
         	while (resultSet.next()) {
         		Course course = new Course();

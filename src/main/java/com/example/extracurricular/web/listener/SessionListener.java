@@ -17,5 +17,8 @@ public final class SessionListener implements HttpSessionListener {
     	HttpSession session = se.getSession();
         session.setMaxInactiveInterval(-1);
         session.setAttribute("orderBy", "none");
+        session.setAttribute("order", "asc");
+        session.setAttribute("topic", "all");
+        session.setAttribute("teacher", "all");
     }
 }
